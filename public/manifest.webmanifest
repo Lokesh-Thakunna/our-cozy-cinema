@@ -1,6 +1,6 @@
 {
-  "name": "Our Cozy Cinema",
-  "short_name": "Cozy Cinema",
+  "name": "Our Happy Place",
+  "short_name": "Happy Place",
   "description": "A private two-person romantic chat and synchronized YouTube watch app.",
   "start_url": "/",
   "display": "standalone",
