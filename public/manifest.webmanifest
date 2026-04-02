@@ -1,11 +1,11 @@
 {
   "name": "Our Happy Place",
   "short_name": "Happy Place",
-  "description": "A private two-person romantic chat and synchronized YouTube watch app.",
+  "description": "A private little love space for sweet chats, saved memories, and synchronized YouTube date nights.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fff3fb",
-  "theme_color": "#d95ca4",
+  "background_color": "#fff7f1",
+  "theme_color": "#de6d5c",
   "icons": [
     {
       "src": "/icons/icon-192.png",

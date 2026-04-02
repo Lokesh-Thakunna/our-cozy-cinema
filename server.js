@@ -335,7 +335,7 @@ function validatePinAttempt(pin, socket) {
     const remainingMinutes = Math.max(1, Math.ceil((record.lockedUntil - currentTime) / 60000));
     return {
       ok: false,
-      error: `Too many wrong PIN attempts. Try again in ${remainingMinutes} minute${remainingMinutes === 1 ? "" : "s"}.`
+      error: `Too many wrong PIN tries. Come back in ${remainingMinutes} minute${remainingMinutes === 1 ? "" : "s"} and try again.`
     };
   }
 
@@ -359,13 +359,13 @@ function validatePinAttempt(pin, socket) {
   if (nextRecord.lockedUntil) {
     return {
       ok: false,
-      error: "Too many wrong PIN attempts. Access is temporarily locked for 10 minutes."
+      error: "Too many wrong PIN tries. Our space is temporarily locked for 10 minutes."
     };
   }
 
   return {
     ok: false,
-    error: "That private PIN is not correct."
+    error: "That secret PIN doesn't match."
   };
 }
 
@@ -473,7 +473,7 @@ async function startServer() {
         console.error("Failed during session join.", error);
 
         if (typeof acknowledge === "function") {
-          acknowledge({ ok: false, error: "Could not start the session." });
+          acknowledge({ ok: false, error: "I couldn't open our space right now." });
         }
       }
     });
@@ -482,7 +482,7 @@ async function startServer() {
       try {
         if (!canControl(socket)) {
           if (typeof acknowledge === "function") {
-            acknowledge({ ok: false, error: "Only the paired devices can send messages." });
+            acknowledge({ ok: false, error: "Only your paired devices can send love notes from here." });
           }
           return;
         }
@@ -490,14 +490,14 @@ async function startServer() {
         const text = sanitizeMessageText(payload.text);
         if (!text) {
           if (typeof acknowledge === "function") {
-            acknowledge({ ok: false, error: "Message cannot be empty." });
+            acknowledge({ ok: false, error: "Your love note can't be empty." });
           }
           return;
         }
 
         if (text.length > 1000) {
           if (typeof acknowledge === "function") {
-            acknowledge({ ok: false, error: "Message is too long." });
+            acknowledge({ ok: false, error: "That love note is a little too long." });
           }
           return;
         }
@@ -522,7 +522,7 @@ async function startServer() {
         console.error("Failed to save chat message.", error);
 
         if (typeof acknowledge === "function") {
-          acknowledge({ ok: false, error: "Message could not be saved." });
+          acknowledge({ ok: false, error: "Your love note couldn't be saved." });
         }
       }
     });
@@ -531,7 +531,7 @@ async function startServer() {
       try {
         if (!canControl(socket)) {
           if (typeof acknowledge === "function") {
-            acknowledge({ ok: false, error: "Only the paired devices can change the video." });
+            acknowledge({ ok: false, error: "Only your paired devices can choose the video here." });
           }
           return;
         }
@@ -539,7 +539,7 @@ async function startServer() {
         const videoId = parseYouTubeVideoId(payload.url);
         if (!videoId) {
           if (typeof acknowledge === "function") {
-            acknowledge({ ok: false, error: "That does not look like a valid YouTube URL." });
+            acknowledge({ ok: false, error: "That doesn't look like a valid YouTube link." });
           }
           return;
         }
@@ -563,7 +563,7 @@ async function startServer() {
         console.error("Failed to change the video.", error);
 
         if (typeof acknowledge === "function") {
-          acknowledge({ ok: false, error: "The video could not be updated." });
+          acknowledge({ ok: false, error: "I couldn't update our video right now." });
         }
       }
     });
@@ -572,7 +572,7 @@ async function startServer() {
       try {
         if (!canControl(socket)) {
           if (typeof acknowledge === "function") {
-            acknowledge({ ok: false, error: "Only the paired devices can control playback." });
+            acknowledge({ ok: false, error: "Only your paired devices can control playback here." });
           }
           return;
         }
@@ -580,7 +580,7 @@ async function startServer() {
         const action = payload.action;
         if (!["play", "pause", "seek"].includes(action)) {
           if (typeof acknowledge === "function") {
-            acknowledge({ ok: false, error: "Unsupported video action." });
+            acknowledge({ ok: false, error: "That playback action isn't supported here." });
           }
           return;
         }
@@ -588,7 +588,7 @@ async function startServer() {
         const incomingVideoId = parseYouTubeVideoId(payload.videoId || appState.video.videoId || "");
         if (!incomingVideoId) {
           if (typeof acknowledge === "function") {
-            acknowledge({ ok: false, error: "No active video is loaded yet." });
+            acknowledge({ ok: false, error: "Our video hasn't been loaded yet." });
           }
           return;
         }
@@ -615,7 +615,7 @@ async function startServer() {
         console.error("Failed to sync video playback.", error);
 
         if (typeof acknowledge === "function") {
-          acknowledge({ ok: false, error: "Playback could not be synchronized." });
+          acknowledge({ ok: false, error: "I couldn't keep our playback in sync right now." });
         }
       }
     });

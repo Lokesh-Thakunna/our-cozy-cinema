@@ -84,20 +84,20 @@ applyReadonlyState();
 void initializeApp();
 
 socket.on("connect", () => {
-  updateConnectionStatus(false, "Verifying access...");
+  updateConnectionStatus(false, "Opening our little world...");
   joinSession();
 });
 
 socket.on("disconnect", () => {
-  updateConnectionStatus(false, state.hasJoined ? "Reconnecting..." : "Offline");
+  updateConnectionStatus(false, state.hasJoined ? "Finding our way back..." : "Away for a moment");
 });
 
 socket.on("connect_error", () => {
-  updateConnectionStatus(false, "Reconnecting...");
+  updateConnectionStatus(false, "Trying to find you again...");
   if (!state.hasJoined) {
-    setAuthError("Could not reach the server. Check the public link and try again.");
+    setAuthError("I couldn't reach our space right now. Check the link and try again.");
   }
-  showToast("Trying to reconnect to your shared room...");
+  showToast("Trying to bring our space back online...");
 });
 
 socket.on("session:state", async (payload) => {
@@ -143,7 +143,7 @@ socket.on("video:changed", async (payload) => {
   state.video = sanitizeVideoPayload(payload);
   updateVideoDetails();
   clearVideoError();
-  showToast(`Video changed by ${state.video.changedBy || "your date"}.`);
+  showToast(`${state.video.changedBy || "Your love"} picked something new for us.`);
   await applyVideoState(state.video, { forceLoad: true });
 });
 
@@ -159,8 +159,8 @@ async function initializeApp() {
   } catch (error) {
     console.error("Failed to load app config.", error);
     state.pinRequired = true;
-    updateConnectionStatus(false, "Server unavailable");
-    setAuthError("Could not reach the server. Refresh after the deployment is online.");
+    updateConnectionStatus(false, "Our space is resting");
+    setAuthError("I couldn't reach our space right now. Refresh once the app is back online.");
     renderAuthGate();
     return;
   }
@@ -168,7 +168,7 @@ async function initializeApp() {
   renderAuthGate();
 
   if (state.pinRequired && !state.accessPin) {
-    updateConnectionStatus(false, "Enter your private PIN");
+    updateConnectionStatus(false, "Enter our secret PIN");
     dom.pinInput.focus();
     return;
   }
@@ -192,8 +192,8 @@ async function loadAppConfig() {
   state.pinRequired = Boolean(payload?.pinRequired);
 
   dom.authMessage.textContent = state.pinRequired
-    ? "Enter the private couple PIN so only you two can use this public link."
-    : "This room is open right now. Add a COUPLE_PIN before putting it on the public internet.";
+    ? "Enter our private PIN so this little place stays just between us."
+    : "This space is open right now. Add a COUPLE_PIN before sharing it publicly.";
 }
 
 function bindUi() {
@@ -238,7 +238,7 @@ function bindUi() {
     state.pendingInstallPrompt.prompt();
     const result = await state.pendingInstallPrompt.userChoice;
     if (result.outcome !== "dismissed") {
-      showToast("App installed. Date night is one tap away.");
+      showToast("Saved close. Our little world is now one tap away.");
     }
 
     state.pendingInstallPrompt = null;
@@ -282,8 +282,11 @@ function joinSession() {
         renderRole();
         renderPresence();
         applyReadonlyState();
-        updateConnectionStatus(false, response?.pinRequired ? "Private PIN required" : "Access denied");
-        setAuthError(response?.error || "Could not open the private room.");
+        updateConnectionStatus(
+          false,
+          response?.pinRequired ? "Our secret PIN is needed" : "Couldn't enter our space"
+        );
+        setAuthError(response?.error || "I couldn't open our little space.");
         dom.pinInput.focus();
       }
     }
@@ -295,13 +298,13 @@ function submitAccessPin() {
 
   const pin = dom.pinInput.value.trim();
   if (!pin) {
-    setAuthError("Enter your private PIN first.");
+    setAuthError("Enter our secret PIN first.");
     return;
   }
 
   state.accessPin = pin;
   dom.pinButton.disabled = true;
-  updateConnectionStatus(false, "Connecting...");
+  updateConnectionStatus(false, "Wrapping this space around us...");
   connectSocket();
 }
 
@@ -364,16 +367,16 @@ function sanitizeVideoPayload(video) {
 
 function renderRole() {
   if (state.pinRequired && !state.hasJoined) {
-    dom.roleBadge.textContent = "Private room locked";
+    dom.roleBadge.textContent = "Just-us mode locked";
     return;
   }
 
   if (state.readOnly || !state.role) {
-    dom.roleBadge.textContent = "Spectator mode";
+    dom.roleBadge.textContent = "Soft guest mode";
     return;
   }
 
-  dom.roleBadge.textContent = `You are ${state.role}`;
+  dom.roleBadge.textContent = `Here as ${state.role}`;
 }
 
 function renderPresence() {
@@ -384,7 +387,7 @@ function renderPresence() {
       state.connectedRoles.find((item) => item.role === role) || { role, online: false };
     const chip = document.createElement("div");
     chip.className = `presence-chip ${info.online ? "online" : "offline"}`;
-    chip.textContent = `${info.online ? "Online" : "Offline"} - ${role}`;
+    chip.textContent = info.online ? `${role} is here with you` : `${role} is away for a bit`;
     fragment.appendChild(chip);
   });
 
@@ -399,8 +402,8 @@ function renderMessages() {
     emptyState.className = "message other";
     emptyState.dataset.emptyState = "true";
     emptyState.innerHTML = `
-      <div class="message-meta">Memory Lane</div>
-      <div class="message-bubble">Your saved messages will appear here once you start chatting.</div>
+      <div class="message-meta">Words of Affirmation</div>
+      <div class="message-bubble">Your sweet little notes will start collecting here as soon as one of you says something lovely.</div>
     `;
     dom.messages.appendChild(emptyState);
     return;
@@ -427,7 +430,7 @@ function appendMessage(rawMessage, shouldScroll) {
 
   const meta = document.createElement("div");
   meta.className = "message-meta";
-  meta.textContent = `${message.sender} - ${formatTimestamp(message.createdAt)}`;
+  meta.textContent = `${message.sender} · ${formatTimestamp(message.createdAt)}`;
 
   const bubble = document.createElement("div");
   bubble.className = "message-bubble";
@@ -449,13 +452,13 @@ function sendMessage() {
   clearChatError();
 
   if (state.readOnly) {
-    setChatError("This browser is in read-only mode because both roles are already paired.");
+    setChatError("This browser can only look on softly right now because both places are already paired.");
     return;
   }
 
   const text = dom.messageInput.value.trim();
   if (!text) {
-    setChatError("Write a message before sending it.");
+    setChatError("Write a little love note before sending it.");
     return;
   }
 
@@ -465,7 +468,7 @@ function sendMessage() {
     dom.sendButton.disabled = false;
 
     if (!response?.ok) {
-      setChatError(response?.error || "Message could not be sent.");
+      setChatError(response?.error || "Your note couldn't be sent right now.");
       return;
     }
 
@@ -478,13 +481,13 @@ function changeVideo() {
   clearVideoError();
 
   if (state.readOnly) {
-    setVideoError("This browser is in read-only mode because both roles are already paired.");
+    setVideoError("This browser can only watch right now because both places are already paired.");
     return;
   }
 
   const url = dom.videoUrlInput.value.trim();
   if (!url) {
-    setVideoError("Paste a YouTube link first.");
+    setVideoError("Paste our YouTube link first.");
     return;
   }
 
@@ -494,12 +497,12 @@ function changeVideo() {
     dom.videoButton.disabled = false;
 
     if (!response?.ok) {
-      setVideoError(response?.error || "Video could not be loaded.");
+      setVideoError(response?.error || "Our video couldn't be loaded just yet.");
       return;
     }
 
     dom.videoUrlInput.value = "";
-    showToast("Video synced for both of you.");
+    showToast("Our movie is ready for both of us.");
   });
 }
 
@@ -507,12 +510,12 @@ function updateConnectionStatus(isOnline, fallbackText) {
   dom.connectionStatus.classList.remove("status-pill-online", "status-pill-offline");
 
   if (isOnline) {
-    dom.connectionStatus.textContent = "Connected live";
+    dom.connectionStatus.textContent = "Together live";
     dom.connectionStatus.classList.add("status-pill-online");
     return;
   }
 
-  dom.connectionStatus.textContent = fallbackText || "Offline";
+  dom.connectionStatus.textContent = fallbackText || "Away for a moment";
   dom.connectionStatus.classList.add("status-pill-offline");
 }
 
@@ -520,12 +523,14 @@ function updateVideoDetails() {
   const hasVideo = Boolean(state.video.videoId);
 
   dom.savedProgress.textContent = formatDuration(state.video.currentTime || 0);
-  dom.currentVideoLink.textContent = hasVideo ? state.video.url : "No video loaded yet";
+  dom.currentVideoLink.textContent = hasVideo
+    ? state.video.url
+    : "Our next little watch date is waiting";
   dom.currentVideoLink.href = hasVideo ? state.video.url : "#";
   dom.currentVideoLink.setAttribute("aria-disabled", String(!hasVideo));
   dom.lastUpdated.textContent = hasVideo
-    ? `${state.video.changedBy || "Someone"} updated it ${formatTimestamp(state.video.updatedAt)}`
-    : "Waiting for your first movie moment...";
+    ? `${state.video.changedBy || "Someone sweet"} changed it ${formatTimestamp(state.video.updatedAt)}`
+    : "Waiting for our next watch-together moment...";
 
   dom.playerPlaceholder.classList.toggle("hidden", hasVideo);
 }
@@ -539,7 +544,7 @@ function applyReadonlyState() {
   dom.videoButton.disabled = disabled;
 
   if (state.readOnly && state.hasJoined) {
-    showToast("Both roles are already paired. This browser can only watch.");
+    showToast("Both places are already paired, so this browser can only watch along.");
   }
 }
 
@@ -749,14 +754,14 @@ function handlePlayerStateChange(event) {
 
 function handlePlayerError(event) {
   const messages = {
-    2: "That YouTube URL looks invalid.",
-    5: "This browser could not play the video.",
-    100: "This video is unavailable.",
-    101: "Embedding is disabled for this video.",
-    150: "Embedding is disabled for this video."
+    2: "That YouTube link doesn't look quite right.",
+    5: "This browser couldn't play our video.",
+    100: "That video isn't available anymore.",
+    101: "This video can't be embedded here.",
+    150: "This video can't be embedded here."
   };
 
-  setVideoError(messages[event.data] || "The video could not be played.");
+  setVideoError(messages[event.data] || "Our video couldn't be played right now.");
 }
 
 function emitVideoSync(action, currentTime, isPlaying) {

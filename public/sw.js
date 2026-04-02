@@ -1,4 +1,4 @@
-const CACHE_NAME = "love-sync-cache-v3";
+const CACHE_NAME = "love-sync-cache-v4";
 const CORE_ASSETS = [
   "/",
   "/index.html",

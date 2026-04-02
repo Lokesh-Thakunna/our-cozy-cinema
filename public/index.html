@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="A private two-person romantic chat and synchronized YouTube watch app."
+      content="A private little love space for sweet chats, saved memories, and synchronized YouTube date nights."
     />
-    <meta name="theme-color" content="#d95ca4" />
+    <meta name="theme-color" content="#de6d5c" />
     <title>Our Happy Place</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icons/icon-192.png" type="image/png" />
@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Nunito:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=DM+Serif+Display:ital@0;1&family=Nunito:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/style.css" />
@@ -29,28 +29,38 @@
         <div class="header-copy">
           <p class="eyebrow">Made with love, just for you</p>
           <h1>Our Happy Place</h1>
-          <p class="subtitle">A little space I made for you, so even the distance feels softer.</p>
+          <p class="subtitle">
+            A soft little corner for our sweetest words, our shared time, and all the tiny ways we
+            love each other.
+          </p>
+          <div class="love-language-strip" aria-label="Love languages in this space">
+            <span class="love-chip">Words of Affirmation</span>
+            <span class="love-chip">Quality Time</span>
+            <span class="love-chip">Us, Always</span>
+          </div>
         </div>
 
         <div class="status-group">
-          <div id="connectionStatus" class="status-pill status-pill-muted">Connecting...</div>
-          <div id="roleBadge" class="status-pill">Finding your spot...</div>
+          <div id="connectionStatus" class="status-pill status-pill-muted">Bringing us together...</div>
+          <div id="roleBadge" class="status-pill">Saving your spot...</div>
           <button id="installButton" class="secondary-button hidden" type="button">
-            Install App
+            Keep It Close
           </button>
         </div>
       </header>
 
       <section id="authPanel" class="auth-panel card hidden" aria-live="polite">
         <div class="auth-copy">
-          <p class="section-kicker">Private entry</p>
-          <h2>Our little corner</h2>
+          <p class="section-kicker">Just Us</p>
+          <h2>Step into our little world</h2>
           <p id="authMessage" class="subtitle">
             Enter our private PIN and step into the space I made especially for us.
           </p>
           <p class="helper-text">
-            After the first login on each phone, the PIN is remembered on that device.
+            After the first login on each phone, the PIN stays remembered so getting back to us
+            feels easy.
           </p>
+          <p class="mini-note">A secret little place for your words, your warmth, and our time together.</p>
         </div>
 
         <form id="authForm" class="auth-form">
@@ -61,10 +71,10 @@
             type="password"
             inputmode="text"
             autocomplete="current-password"
-            placeholder="Enter your private PIN"
+            placeholder="Enter our little secret PIN"
             required
           />
-          <button id="pinButton" class="primary-button" type="submit">Unlock Our Room</button>
+          <button id="pinButton" class="primary-button" type="submit">Open Our Space</button>
           <p id="authError" class="inline-error" role="alert"></p>
         </form>
       </section>
@@ -73,8 +83,8 @@
         <section class="panel chat-panel card">
           <div class="panel-header">
             <div>
-              <p class="section-kicker">Love Notes</p>
-              <h2>Live Chat</h2>
+              <p class="section-kicker">Words of Affirmation</p>
+              <h2>Love Notes</h2>
             </div>
             <div class="presence-strip" id="presenceStrip" aria-live="polite"></div>
           </div>
@@ -88,12 +98,12 @@
               name="message"
               rows="2"
               maxlength="1000"
-              placeholder="Type a little love note..."
+              placeholder="Write something soft, sweet, and true..."
               required
             ></textarea>
             <div class="form-row">
-              <p class="helper-text">Messages are saved so your conversation stays here.</p>
-              <button id="sendButton" class="primary-button" type="submit">Send Message</button>
+              <p class="helper-text">Every little note stays saved here, like our own tiny memory box.</p>
+              <button id="sendButton" class="primary-button" type="submit">Send Love</button>
             </div>
             <p id="chatError" class="inline-error" role="alert"></p>
           </form>
@@ -102,12 +112,12 @@
         <section class="panel video-panel card">
           <div class="panel-header">
             <div>
-              <p class="section-kicker">Shared Watch Party</p>
-              <h2>YouTube Sync</h2>
+              <p class="section-kicker">Quality Time</p>
+              <h2>Date Night Screen</h2>
             </div>
             <div class="video-stats">
               <div class="stat-chip">
-                <span class="stat-label">Saved Progress</span>
+                <span class="stat-label">Our Progress</span>
                 <span id="savedProgress" class="stat-value">0:00</span>
               </div>
             </div>
@@ -120,30 +130,30 @@
               name="videoUrl"
               type="url"
               inputmode="url"
-              placeholder="Paste a YouTube link to start watching together"
+              placeholder="Paste the YouTube link for our next little date"
               required
             />
-            <button id="videoButton" class="primary-button" type="submit">Load Video</button>
+            <button id="videoButton" class="primary-button" type="submit">Start Our Movie</button>
           </form>
 
           <p class="helper-text">
-            Paste any valid YouTube URL. Play, pause, and seeking sync in real time for both of
-            you.
+            Paste any valid YouTube URL and the play, pause, and seeking will stay in step for both
+            of us.
           </p>
           <p id="videoError" class="inline-error" role="alert"></p>
 
           <div class="player-frame">
             <div id="player"></div>
             <div id="playerPlaceholder" class="player-placeholder">
-              <div class="placeholder-badge">Ready for our next date night</div>
-              <h3>Choose a video and let's press play together.</h3>
-              <p>Your last saved timestamp will come right back, like we never left.</p>
+              <div class="placeholder-badge">Quality time, ready</div>
+              <h3>Pick our comfort video and let's press play together.</h3>
+              <p>We'll come back to the exact moment we left, like our time was waiting for us.</p>
             </div>
           </div>
 
           <div class="video-meta">
             <div class="meta-card">
-              <span class="meta-label">Current Video</span>
+              <span class="meta-label">Now Playing</span>
               <a
                 id="currentVideoLink"
                 class="meta-link"
@@ -151,12 +161,12 @@
                 target="_blank"
                 rel="noreferrer noopener"
               >
-                No video loaded yet
+                Our next little watch date is waiting
               </a>
             </div>
             <div class="meta-card">
-              <span class="meta-label">Last Change</span>
-              <span id="lastUpdated">Waiting for our next sweet little moment...</span>
+              <span class="meta-label">Last Little Update</span>
+              <span id="lastUpdated">Waiting for our next watch-together moment...</span>
             </div>
           </div>
         </section>
