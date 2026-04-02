@@ -20,6 +20,7 @@ const STALE_ROLE_MS = 1000 * 60 * 60 * 24 * 14;
 const AUTH_WINDOW_MS = 1000 * 60 * 10;
 const AUTH_LOCKOUT_MS = 1000 * 60 * 10;
 const MAX_FAILED_PIN_ATTEMPTS = 8;
+const NO_STORE_EXTENSIONS = new Set([".html", ".css", ".js", ".webmanifest"]);
 
 const defaultState = {
   messages: [],
@@ -395,7 +396,19 @@ async function startServer() {
   app.use(
     express.static(PUBLIC_DIR, {
       extensions: ["html"],
-      maxAge: "1h"
+      maxAge: 0,
+      setHeaders: (response, filePath) => {
+        const extension = path.extname(filePath).toLowerCase();
+
+        if (filePath.endsWith(`${path.sep}sw.js`) || NO_STORE_EXTENSIONS.has(extension)) {
+          response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+          response.setHeader("Pragma", "no-cache");
+          response.setHeader("Expires", "0");
+          return;
+        }
+
+        response.setHeader("Cache-Control", "public, max-age=86400");
+      }
     })
   );
 
