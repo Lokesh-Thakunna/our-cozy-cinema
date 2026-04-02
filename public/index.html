@@ -171,6 +171,66 @@
           </div>
         </section>
       </main>
+
+      <section class="location-room card">
+        <div class="location-room-header">
+          <div class="location-room-copy">
+            <p class="section-kicker">Acts of Care</p>
+            <h2>Find Me, Love</h2>
+            <p class="subtitle">
+              Share your live location only when you want to say "I am on my way" or "I am close
+              to you."
+            </p>
+          </div>
+
+          <div class="location-actions">
+            <button id="shareLocationButton" class="primary-button" type="button">
+              Share My Live Location
+            </button>
+            <button id="stopLocationButton" class="secondary-button" type="button">
+              Stop Sharing
+            </button>
+          </div>
+        </div>
+
+        <div class="location-grid">
+          <article class="location-card">
+            <span class="meta-label">Your Little Trail</span>
+            <h3 id="yourLocationStatus" class="location-title">Not sharing right now</h3>
+            <p id="yourLocationSummary" class="helper-text">
+              Turn it on whenever you want your person to know where you are.
+            </p>
+            <a
+              id="yourLocationLink"
+              class="meta-link hidden"
+              href="#"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              Open your live pin
+            </a>
+          </article>
+
+          <article class="location-card">
+            <span class="meta-label">Their Little Trail</span>
+            <h3 id="partnerLocationStatus" class="location-title">Waiting for a shared pin</h3>
+            <p id="partnerLocationSummary" class="helper-text">
+              If your person shares their live location, it will appear here.
+            </p>
+            <a
+              id="partnerLocationLink"
+              class="meta-link hidden"
+              href="#"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              Open their live pin
+            </a>
+          </article>
+        </div>
+
+        <p id="locationError" class="inline-error" role="alert"></p>
+      </section>
     </div>
 
     <div id="toast" class="toast" hidden></div>

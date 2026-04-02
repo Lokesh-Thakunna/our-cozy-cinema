@@ -22,6 +22,21 @@ const AUTH_LOCKOUT_MS = 1000 * 60 * 10;
 const MAX_FAILED_PIN_ATTEMPTS = 8;
 const NO_STORE_EXTENSIONS = new Set([".html", ".css", ".js", ".webmanifest"]);
 
+function emptyLocationState(changedBy = null, updatedAt = null) {
+  return {
+    isSharing: false,
+    latitude: null,
+    longitude: null,
+    accuracy: null,
+    updatedAt,
+    changedBy
+  };
+}
+
+function emptyLocationMap() {
+  return Object.fromEntries(ROLE_NAMES.map((role) => [role, emptyLocationState()]));
+}
+
 const defaultState = {
   messages: [],
   video: {
@@ -32,6 +47,7 @@ const defaultState = {
     updatedAt: null,
     changedBy: null
   },
+  locations: emptyLocationMap(),
   clients: {}
 };
 
@@ -67,6 +83,11 @@ function clampNumber(value, fallback = 0) {
   }
 
   return parsed;
+}
+
+function clampNullableNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function canonicalYouTubeUrl(videoId) {
@@ -154,6 +175,38 @@ function normalizeState(rawState) {
       : null
   };
 
+  const normalizedLocations = emptyLocationMap();
+  const rawLocations =
+    rawState?.locations && typeof rawState.locations === "object"
+      ? rawState.locations
+      : rawState?.location && ROLE_NAMES.includes(rawState.location.changedBy)
+        ? { [rawState.location.changedBy]: rawState.location }
+        : {};
+
+  for (const role of ROLE_NAMES) {
+    const rawLocation = rawLocations?.[role];
+    const latitude = clampNullableNumber(rawLocation?.latitude);
+    const longitude = clampNullableNumber(rawLocation?.longitude);
+    const accuracy = clampNullableNumber(rawLocation?.accuracy);
+    const hasValidCoordinates =
+      latitude !== null &&
+      longitude !== null &&
+      latitude >= -90 &&
+      latitude <= 90 &&
+      longitude >= -180 &&
+      longitude <= 180;
+
+    normalizedLocations[role] = {
+      isSharing: Boolean(rawLocation?.isSharing) && hasValidCoordinates,
+      latitude: hasValidCoordinates ? latitude : null,
+      longitude: hasValidCoordinates ? longitude : null,
+      accuracy: hasValidCoordinates && accuracy !== null && accuracy >= 0 ? accuracy : null,
+      updatedAt:
+        typeof rawLocation?.updatedAt === "string" ? rawLocation.updatedAt : null,
+      changedBy: role
+    };
+  }
+
   const clients = {};
   const rawClients = rawState?.clients && typeof rawState.clients === "object" ? rawState.clients : {};
 
@@ -171,6 +224,7 @@ function normalizeState(rawState) {
   return {
     messages,
     video,
+    locations: normalizedLocations,
     clients
   };
 }
@@ -219,6 +273,14 @@ function getConnectedRoles() {
     role,
     online: roles.has(role)
   }));
+}
+
+function isRoleConnected(role) {
+  if (!role) {
+    return false;
+  }
+
+  return Array.from(connectedSockets.values()).some((socketInfo) => socketInfo.role === role);
 }
 
 function releaseDuplicateRoleBindings(role, keepClientId) {
@@ -294,7 +356,8 @@ function buildSessionPayload(role, readOnly) {
     roles: ROLE_NAMES,
     connectedRoles: getConnectedRoles(),
     messages: appState.messages,
-    video: appState.video
+    video: appState.video,
+    locations: appState.locations
   };
 }
 
@@ -307,6 +370,22 @@ function buildVideoPayload() {
     updatedAt: appState.video.updatedAt,
     changedBy: appState.video.changedBy
   };
+}
+
+function buildLocationPayload() {
+  return Object.fromEntries(
+    ROLE_NAMES.map((role) => [
+      role,
+      {
+        isSharing: Boolean(appState.locations[role]?.isSharing),
+        latitude: appState.locations[role]?.latitude ?? null,
+        longitude: appState.locations[role]?.longitude ?? null,
+        accuracy: appState.locations[role]?.accuracy ?? null,
+        updatedAt: appState.locations[role]?.updatedAt ?? null,
+        changedBy: role
+      }
+    ])
+  );
 }
 
 function canControl(socket) {
@@ -425,7 +504,8 @@ async function startServer() {
       uptime: process.uptime(),
       connected: getConnectedRoles(),
       savedMessages: appState.messages.length,
-      pinProtected: Boolean(COUPLE_PIN)
+      pinProtected: Boolean(COUPLE_PIN),
+      locationSharing: Object.values(appState.locations).some((location) => location.isSharing)
     });
   });
 
@@ -655,6 +735,72 @@ async function startServer() {
       }
     });
 
+    socket.on("location:update", async (payload = {}, acknowledge) => {
+      try {
+        if (!canControl(socket)) {
+          if (typeof acknowledge === "function") {
+            acknowledge({
+              ok: false,
+              error: "Only your paired devices can share live location from here."
+            });
+          }
+          return;
+        }
+
+        if (!payload?.isSharing) {
+          appState.locations[socket.data.role] = emptyLocationState(socket.data.role, nowIso());
+
+          await queueStateSave();
+          io.emit("location:updated", buildLocationPayload());
+
+          if (typeof acknowledge === "function") {
+            acknowledge({ ok: true, location: buildLocationPayload() });
+          }
+          return;
+        }
+
+        const latitude = clampNullableNumber(payload.latitude);
+        const longitude = clampNullableNumber(payload.longitude);
+        const accuracy = clampNullableNumber(payload.accuracy);
+        const hasValidCoordinates =
+          latitude !== null &&
+          longitude !== null &&
+          latitude >= -90 &&
+          latitude <= 90 &&
+          longitude >= -180 &&
+          longitude <= 180;
+
+        if (!hasValidCoordinates) {
+          if (typeof acknowledge === "function") {
+            acknowledge({ ok: false, error: "That live location update did not include valid coordinates." });
+          }
+          return;
+        }
+
+        appState.locations[socket.data.role] = {
+          isSharing: true,
+          latitude,
+          longitude,
+          accuracy: accuracy !== null && accuracy >= 0 ? accuracy : null,
+          updatedAt: nowIso(),
+          changedBy: socket.data.role
+        };
+
+        await queueStateSave();
+        io.emit("location:updated", buildLocationPayload());
+
+        if (typeof acknowledge === "function") {
+          acknowledge({ ok: true, location: buildLocationPayload() });
+        }
+      } catch (error) {
+        console.error("Failed to update live location.", error);
+
+        if (typeof acknowledge === "function") {
+          acknowledge({ ok: false, error: "I couldn't update the live location right now." });
+        }
+      }
+    });
+
     socket.on("disconnect", async () => {
       try {
         const clientId = socket.data.clientId;
@@ -665,6 +811,16 @@ async function startServer() {
         if (clientId && role && appState.clients[clientId]) {
           appState.clients[clientId].lastSeen = nowIso();
           await queueStateSave();
+        }
+
+        if (
+          role &&
+          appState.locations[role]?.isSharing &&
+          !isRoleConnected(role)
+        ) {
+          appState.locations[role] = emptyLocationState(role, nowIso());
+          await queueStateSave();
+          io.emit("location:updated", buildLocationPayload());
         }
 
         io.emit("presence:update", getConnectedRoles());

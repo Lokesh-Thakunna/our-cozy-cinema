@@ -517,6 +517,59 @@ a {
   margin-top: 1rem;
 }
 
+.location-room {
+  margin-top: 1.25rem;
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at top right, rgba(255, 245, 221, 0.7), transparent 24%),
+    linear-gradient(135deg, rgba(255, 249, 242, 0.95), rgba(255, 237, 228, 0.84));
+}
+
+.location-room-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.location-room-copy h2,
+.location-title {
+  margin: 0;
+  font-family: "DM Serif Display", Georgia, serif;
+  letter-spacing: 0.02em;
+}
+
+.location-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.location-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.location-card {
+  display: grid;
+  gap: 0.45rem;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(201, 111, 100, 0.12);
+}
+
+.location-title {
+  font-size: 1.45rem;
+}
+
+.location-card .helper-text {
+  margin: 0;
+}
+
 .meta-card {
   display: grid;
   gap: 0.35rem;
@@ -616,8 +669,21 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .location-grid {
+    grid-template-columns: 1fr;
+  }
+
   .primary-button,
   .secondary-button {
     width: 100%;
+  }
+
+  .location-actions {
+    width: 100%;
+  }
+
+  .location-room-header {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

@@ -6,6 +6,26 @@ const SEEK_COOLDOWN_MS = 1800;
 const REMOTE_GUARD_MS = 1500;
 const PROGRESS_INTERVAL_MS = 5000;
 const WATCHER_INTERVAL_MS = 1000;
+const LOCATION_WATCH_OPTIONS = {
+  enableHighAccuracy: true,
+  maximumAge: 10000,
+  timeout: 15000
+};
+
+function emptyLocationState(changedBy = null, updatedAt = null) {
+  return {
+    isSharing: false,
+    latitude: null,
+    longitude: null,
+    accuracy: null,
+    updatedAt,
+    changedBy
+  };
+}
+
+function emptyLocationMap() {
+  return Object.fromEntries(ROLE_ORDER.map((role) => [role, emptyLocationState(role)]));
+}
 
 const dom = {
   appShell: document.querySelector(".app-shell"),
@@ -21,6 +41,15 @@ const dom = {
   videoUrlInput: document.getElementById("videoUrlInput"),
   videoButton: document.getElementById("videoButton"),
   videoError: document.getElementById("videoError"),
+  shareLocationButton: document.getElementById("shareLocationButton"),
+  stopLocationButton: document.getElementById("stopLocationButton"),
+  yourLocationStatus: document.getElementById("yourLocationStatus"),
+  yourLocationSummary: document.getElementById("yourLocationSummary"),
+  yourLocationLink: document.getElementById("yourLocationLink"),
+  partnerLocationStatus: document.getElementById("partnerLocationStatus"),
+  partnerLocationSummary: document.getElementById("partnerLocationSummary"),
+  partnerLocationLink: document.getElementById("partnerLocationLink"),
+  locationError: document.getElementById("locationError"),
   playerPlaceholder: document.getElementById("playerPlaceholder"),
   currentVideoLink: document.getElementById("currentVideoLink"),
   savedProgress: document.getElementById("savedProgress"),
@@ -52,6 +81,7 @@ const state = {
     updatedAt: null,
     changedBy: null
   },
+  locations: emptyLocationMap(),
   player: null,
   playerReady: false,
   youtubeReady: false,
@@ -61,7 +91,9 @@ const state = {
   lastSeekSentAt: 0,
   lastProgressSentAt: 0,
   watchTimer: null,
-  lastCommandSignature: ""
+  lastCommandSignature: "",
+  locationWatchId: null,
+  latestPosition: null
 };
 
 const socket = io({
@@ -80,6 +112,7 @@ renderRole();
 renderPresence();
 renderMessages();
 updateVideoDetails();
+renderLocation();
 applyReadonlyState();
 void initializeApp();
 
@@ -107,6 +140,7 @@ socket.on("session:state", async (payload) => {
   state.connectedRoles = Array.isArray(payload.connectedRoles) ? payload.connectedRoles : [];
   state.messages = Array.isArray(payload.messages) ? payload.messages : [];
   state.video = sanitizeVideoPayload(payload.video);
+  state.locations = sanitizeLocationsPayload(payload.locations);
 
   if (state.pinRequired && state.accessPin) {
     storeAccessPin(state.accessPin);
@@ -119,7 +153,13 @@ socket.on("session:state", async (payload) => {
   renderPresence();
   renderMessages();
   updateVideoDetails();
+  renderLocation();
   applyReadonlyState();
+
+  if (state.locationWatchId !== null && state.latestPosition && !state.readOnly) {
+    sharePosition(state.latestPosition, { quiet: true });
+  }
+
   await applyVideoState(state.video, { forceLoad: true });
 });
 
@@ -151,6 +191,11 @@ socket.on("video:synced", async (payload) => {
   state.video = sanitizeVideoPayload(payload);
   updateVideoDetails();
   await applyVideoState(state.video, { forceLoad: false });
+});
+
+socket.on("location:updated", (payload) => {
+  state.locations = sanitizeLocationsPayload(payload);
+  renderLocation();
 });
 
 async function initializeApp() {
@@ -216,6 +261,14 @@ function bindUi() {
   dom.videoForm.addEventListener("submit", (event) => {
     event.preventDefault();
     changeVideo();
+  });
+
+  dom.shareLocationButton.addEventListener("click", () => {
+    void startLocationSharing();
+  });
+
+  dom.stopLocationButton.addEventListener("click", () => {
+    stopLocationSharing();
   });
 
   dom.messageInput.addEventListener("input", () => {
@@ -365,6 +418,39 @@ function sanitizeVideoPayload(video) {
   };
 }
 
+function sanitizeLocationPayload(location, roleOverride = null) {
+  const latitude = Number(location?.latitude);
+  const longitude = Number(location?.longitude);
+  const accuracy = Number(location?.accuracy);
+  const hasValidCoordinates =
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180;
+
+  return {
+    isSharing: Boolean(location?.isSharing) && hasValidCoordinates,
+    latitude: hasValidCoordinates ? latitude : null,
+    longitude: hasValidCoordinates ? longitude : null,
+    accuracy: hasValidCoordinates && Number.isFinite(accuracy) && accuracy >= 0 ? accuracy : null,
+    updatedAt: typeof location?.updatedAt === "string" ? location.updatedAt : null,
+    changedBy:
+      ROLE_ORDER.includes(roleOverride) ? roleOverride : ROLE_ORDER.includes(location?.changedBy) ? location.changedBy : null
+  };
+}
+
+function sanitizeLocationsPayload(locations) {
+  const normalized = emptyLocationMap();
+
+  for (const role of ROLE_ORDER) {
+    normalized[role] = sanitizeLocationPayload(locations?.[role], role);
+  }
+
+  return normalized;
+}
+
 function renderRole() {
   if (state.pinRequired && !state.hasJoined) {
     dom.roleBadge.textContent = "Just-us mode locked";
@@ -411,6 +497,47 @@ function renderMessages() {
 
   state.messages.forEach((message) => appendMessage(message, false));
   scrollMessagesToBottom();
+}
+
+function renderLocation() {
+  const otherRole =
+    ROLE_ORDER.find((role) => role !== state.role) || (state.role === "My Love" ? "Me" : "My Love");
+  const myCoordinates =
+    state.role && state.locations[state.role]?.isSharing ? state.locations[state.role] : null;
+  const partnerCoordinates = state.locations[otherRole]?.isSharing ? state.locations[otherRole] : null;
+  const locationControlsDisabled = state.readOnly || (state.pinRequired && !state.hasJoined);
+
+  dom.shareLocationButton.disabled = locationControlsDisabled || state.locationWatchId !== null;
+  dom.stopLocationButton.disabled = locationControlsDisabled || state.locationWatchId === null;
+
+  if (myCoordinates) {
+    dom.yourLocationStatus.textContent = "Sharing your live location";
+    dom.yourLocationSummary.textContent = `Updated ${formatTimestamp(myCoordinates.updatedAt)}${formatAccuracy(myCoordinates.accuracy)}.`;
+    setLocationLink(dom.yourLocationLink, myCoordinates.latitude, myCoordinates.longitude, "Open your live pin");
+  } else if (state.locationWatchId !== null) {
+    dom.yourLocationStatus.textContent = "Finding your live pin";
+    dom.yourLocationSummary.textContent = "Stay on this page for a moment while your location warms up.";
+    setLocationLink(dom.yourLocationLink, null, null, "Open your live pin");
+  } else {
+    dom.yourLocationStatus.textContent = "Not sharing right now";
+    dom.yourLocationSummary.textContent = "Turn it on whenever you want your person to know where you are.";
+    setLocationLink(dom.yourLocationLink, null, null, "Open your live pin");
+  }
+
+  if (partnerCoordinates) {
+    dom.partnerLocationStatus.textContent = `${otherRole} is sharing live`;
+    dom.partnerLocationSummary.textContent = `Updated ${formatTimestamp(partnerCoordinates.updatedAt)}${formatAccuracy(partnerCoordinates.accuracy)}.`;
+    setLocationLink(
+      dom.partnerLocationLink,
+      partnerCoordinates.latitude,
+      partnerCoordinates.longitude,
+      `Open ${otherRole}'s live pin`
+    );
+  } else {
+    dom.partnerLocationStatus.textContent = "Waiting for a shared pin";
+    dom.partnerLocationSummary.textContent = "If your person shares their live location, it will appear here.";
+    setLocationLink(dom.partnerLocationLink, null, null, "Open their live pin");
+  }
 }
 
 function appendMessage(rawMessage, shouldScroll) {
@@ -506,6 +633,121 @@ function changeVideo() {
   });
 }
 
+async function startLocationSharing() {
+  clearLocationError();
+
+  if (state.readOnly) {
+    setLocationError("This browser can only look on softly right now because both places are already paired.");
+    return;
+  }
+
+  if (!("geolocation" in navigator)) {
+    setLocationError("This browser does not support live location sharing.");
+    return;
+  }
+
+  if (state.locationWatchId !== null) {
+    showToast("Your live pin is already being shared.");
+    return;
+  }
+
+  dom.shareLocationButton.disabled = true;
+  dom.yourLocationStatus.textContent = "Finding your live pin";
+  dom.yourLocationSummary.textContent = "Stay on this page for a moment while your location warms up.";
+
+  state.locationWatchId = navigator.geolocation.watchPosition(
+    (position) => {
+      state.latestPosition = position;
+      sharePosition(position);
+    },
+    (error) => {
+      stopLocationSharing({ quiet: true });
+      setLocationError(mapLocationError(error));
+    },
+    LOCATION_WATCH_OPTIONS
+  );
+
+  renderLocation();
+}
+
+function stopLocationSharing(options = {}) {
+  const { skipServer = false, quiet = false } = options;
+  const shouldEmitStop =
+    !skipServer &&
+    state.hasJoined &&
+    !state.readOnly &&
+    (state.locationWatchId !== null ||
+      (state.role && state.locations[state.role]?.isSharing));
+
+  if (state.locationWatchId !== null) {
+    navigator.geolocation.clearWatch(state.locationWatchId);
+    state.locationWatchId = null;
+  }
+
+  if (state.role) {
+    state.locations[state.role] = sanitizeLocationPayload({
+      isSharing: false,
+      updatedAt: new Date().toISOString(),
+      changedBy: state.role
+    }, state.role);
+  }
+
+  renderLocation();
+
+  if (shouldEmitStop) {
+    socket.emit("location:update", { isSharing: false }, (response) => {
+      if (!response?.ok) {
+        setLocationError(response?.error || "I couldn't stop the live location right now.");
+        return;
+      }
+
+      if (!quiet) {
+        showToast("Your live pin is private again.");
+      }
+    });
+    return;
+  }
+
+  if (!quiet) {
+    showToast("Your live pin is private again.");
+  }
+}
+
+function sharePosition(position, options = {}) {
+  const { quiet = false } = options;
+  const payload = {
+    isSharing: true,
+    latitude: position.coords.latitude,
+    longitude: position.coords.longitude,
+    accuracy: position.coords.accuracy
+  };
+  const wasAlreadySharing = Boolean(state.role && state.locations[state.role]?.isSharing);
+
+  if (state.role) {
+    state.locations[state.role] = sanitizeLocationPayload({
+      ...payload,
+      updatedAt: new Date().toISOString(),
+      changedBy: state.role
+    }, state.role);
+  }
+  renderLocation();
+  clearLocationError();
+
+  socket.emit("location:update", payload, (response) => {
+    if (!response?.ok) {
+      setLocationError(response?.error || "I couldn't update your live pin right now.");
+      return;
+    }
+
+    state.locations = sanitizeLocationsPayload(response.location);
+    renderLocation();
+
+    if (!quiet && !wasAlreadySharing) {
+      showToast("Your live pin is now being shared.");
+    }
+  });
+}
+
 function updateConnectionStatus(isOnline, fallbackText) {
   dom.connectionStatus.classList.remove("status-pill-online", "status-pill-offline");
 
@@ -542,10 +784,14 @@ function applyReadonlyState() {
   dom.sendButton.disabled = disabled;
   dom.videoUrlInput.disabled = disabled;
   dom.videoButton.disabled = disabled;
+  dom.shareLocationButton.disabled = disabled;
+  dom.stopLocationButton.disabled = disabled || state.locationWatchId === null;
 
   if (state.readOnly && state.hasJoined) {
     showToast("Both places are already paired, so this browser can only watch along.");
   }
+
+  renderLocation();
 }
 
 function loadYouTubeApi() {
@@ -840,6 +1086,14 @@ function clearVideoError() {
   dom.videoError.textContent = "";
 }
 
+function setLocationError(message) {
+  dom.locationError.textContent = message;
+}
+
+function clearLocationError() {
+  dom.locationError.textContent = "";
+}
+
 function setupInstallPrompt() {
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
@@ -904,6 +1158,12 @@ function registerServiceWorker() {
   });
 }
 
+window.addEventListener("beforeunload", () => {
+  if (state.locationWatchId !== null) {
+    navigator.geolocation.clearWatch(state.locationWatchId);
+  }
+});
+
 function showToast(message) {
   dom.toast.hidden = false;
   dom.toast.textContent = message;
@@ -953,6 +1213,47 @@ function extractVideoId(input) {
   }
 
   return "";
+}
+
+function setLocationLink(linkElement, latitude, longitude, label) {
+  linkElement.textContent = label;
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    linkElement.classList.add("hidden");
+    linkElement.href = "#";
+    return;
+  }
+
+  linkElement.href = `https://www.google.com/maps?q=${latitude},${longitude}`;
+  linkElement.classList.remove("hidden");
+}
+
+function mapLocationError(error) {
+  if (!error || typeof error.code !== "number") {
+    return "I couldn't read your live location right now.";
+  }
+
+  if (error.code === 1) {
+    return "Location permission was denied, so I could not share your live pin.";
+  }
+
+  if (error.code === 2) {
+    return "Your location is unavailable right now. Try again in a moment.";
+  }
+
+  if (error.code === 3) {
+    return "Location lookup took too long. Try again where your signal is a little stronger.";
+  }
+
+  return "I couldn't read your live location right now.";
+}
+
+function formatAccuracy(accuracy) {
+  if (!Number.isFinite(accuracy) || accuracy <= 0) {
+    return "";
+  }
+
+  return ` with about ${Math.round(accuracy)}m accuracy`;
 }
 
 function formatDuration(totalSeconds) {
