@@ -10,6 +10,3 @@ services:
         sync: false
       - key: TRUST_PROXY
         value: "true"
-    disk:
-      name: storage
-      mountPath: /opt/render/project/src/storage

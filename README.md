@@ -95,8 +95,8 @@ This repo now includes `render.yaml`, so you can create the service from the rep
 Notes:
 
 - The app saves chat and playback state in `storage/state.json`.
-- The included `render.yaml` mounts a persistent disk at `/opt/render/project/src/storage`, which matches Render's documented Node.js source path.
-- Persistent disks are a Render paid feature, so if you remove the disk to use a cheaper setup, saved chat/video state can reset on redeploy or restart.
+- The included `render.yaml` is configured for the free Render setup and does not use a persistent disk.
+- Because free Render does not keep a persistent disk attached, saved chat/video state can reset on redeploy, restart, or when the service is rebuilt.
 
 ## Environment Variables
 
