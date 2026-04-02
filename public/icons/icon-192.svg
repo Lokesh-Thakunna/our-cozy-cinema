@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="Our Cozy Cinema icon">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffb5dc" />
+      <stop offset="100%" stop-color="#b86dff" />
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="52" fill="url(#bg)" />
+  <circle cx="96" cy="96" r="62" fill="rgba(255,255,255,0.26)" />
+  <path
+    d="M66 60c8 0 15 4 20 10 5-6 12-10 20-10 14 0 26 11 26 26 0 28-46 52-46 52S40 114 40 86c0-15 12-26 26-26Z"
+    fill="#fff7fb"
+  />
+  <path d="M79 74h34c4 0 7 3 7 7v22c0 4-3 7-7 7H79c-4 0-7-3-7-7V81c0-4 3-7 7-7Z" fill="#ff7ec3" />
+  <polygon points="91,86 109,96 91,106" fill="#fff7fb" />
+</svg>

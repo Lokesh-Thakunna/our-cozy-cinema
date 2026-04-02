@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: our-cozy-cinema
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: COUPLE_PIN
+        sync: false
+      - key: TRUST_PROXY
+        value: "true"
+    disk:
+      name: storage
+      mountPath: /opt/render/project/src/storage

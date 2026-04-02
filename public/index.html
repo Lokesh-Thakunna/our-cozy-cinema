@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A private two-person romantic chat and synchronized YouTube watch app."
+    />
+    <meta name="theme-color" content="#d95ca4" />
+    <title>Our Cozy Cinema</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon-192.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Nunito:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <div class="app-shell">
+      <header class="app-header card">
+        <div class="header-copy">
+          <p class="eyebrow">Built for just the two of you</p>
+          <h1>Our Cozy Cinema</h1>
+          <p class="subtitle">Chat, watch, pause, seek, and stay perfectly together.</p>
+        </div>
+
+        <div class="status-group">
+          <div id="connectionStatus" class="status-pill status-pill-muted">Connecting...</div>
+          <div id="roleBadge" class="status-pill">Finding your spot...</div>
+          <button id="installButton" class="secondary-button hidden" type="button">
+            Install App
+          </button>
+        </div>
+      </header>
+
+      <section id="authPanel" class="auth-panel card hidden" aria-live="polite">
+        <div class="auth-copy">
+          <p class="section-kicker">Private entry</p>
+          <h2>Your long-distance room</h2>
+          <p id="authMessage" class="subtitle">
+            Enter the private couple PIN so only you two can use this public link.
+          </p>
+          <p class="helper-text">
+            After the first login on each phone, the PIN is remembered on that device.
+          </p>
+        </div>
+
+        <form id="authForm" class="auth-form">
+          <label class="sr-only" for="pinInput">Private PIN</label>
+          <input
+            id="pinInput"
+            name="pin"
+            type="password"
+            inputmode="text"
+            autocomplete="current-password"
+            placeholder="Enter your private PIN"
+            required
+          />
+          <button id="pinButton" class="primary-button" type="submit">Unlock Our Room</button>
+          <p id="authError" class="inline-error" role="alert"></p>
+        </form>
+      </section>
+
+      <main class="main-layout">
+        <section class="panel chat-panel card">
+          <div class="panel-header">
+            <div>
+              <p class="section-kicker">Love Notes</p>
+              <h2>Live Chat</h2>
+            </div>
+            <div class="presence-strip" id="presenceStrip" aria-live="polite"></div>
+          </div>
+
+          <div id="messages" class="messages" aria-live="polite" aria-label="Chat messages"></div>
+
+          <form id="chatForm" class="chat-form">
+            <label class="sr-only" for="messageInput">Message</label>
+            <textarea
+              id="messageInput"
+              name="message"
+              rows="2"
+              maxlength="1000"
+              placeholder="Type something sweet..."
+              required
+            ></textarea>
+            <div class="form-row">
+              <p class="helper-text">Messages are saved so your conversation stays here.</p>
+              <button id="sendButton" class="primary-button" type="submit">Send Message</button>
+            </div>
+            <p id="chatError" class="inline-error" role="alert"></p>
+          </form>
+        </section>
+
+        <section class="panel video-panel card">
+          <div class="panel-header">
+            <div>
+              <p class="section-kicker">Shared Watch Party</p>
+              <h2>YouTube Sync</h2>
+            </div>
+            <div class="video-stats">
+              <div class="stat-chip">
+                <span class="stat-label">Saved Progress</span>
+                <span id="savedProgress" class="stat-value">0:00</span>
+              </div>
+            </div>
+          </div>
+
+          <form id="videoForm" class="video-form">
+            <label class="sr-only" for="videoUrlInput">YouTube URL</label>
+            <input
+              id="videoUrlInput"
+              name="videoUrl"
+              type="url"
+              inputmode="url"
+              placeholder="Paste a YouTube link to start watching together"
+              required
+            />
+            <button id="videoButton" class="primary-button" type="submit">Load Video</button>
+          </form>
+
+          <p class="helper-text">
+            Paste any valid YouTube URL. Play, pause, and seeking sync in real time for both of
+            you.
+          </p>
+          <p id="videoError" class="inline-error" role="alert"></p>
+
+          <div class="player-frame">
+            <div id="player"></div>
+            <div id="playerPlaceholder" class="player-placeholder">
+              <div class="placeholder-badge">Ready for your next date night</div>
+              <h3>Choose a video and press play together.</h3>
+              <p>Your last saved timestamp will come right back when the app reloads.</p>
+            </div>
+          </div>
+
+          <div class="video-meta">
+            <div class="meta-card">
+              <span class="meta-label">Current Video</span>
+              <a
+                id="currentVideoLink"
+                class="meta-link"
+                href="#"
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                No video loaded yet
+              </a>
+            </div>
+            <div class="meta-card">
+              <span class="meta-label">Last Change</span>
+              <span id="lastUpdated">Waiting for your first movie moment...</span>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/script.js" defer></script>
+  </body>
+</html>

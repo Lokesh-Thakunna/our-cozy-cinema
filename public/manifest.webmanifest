@@ -1,0 +1,23 @@
+{
+  "name": "Our Cozy Cinema",
+  "short_name": "Cozy Cinema",
+  "description": "A private two-person romantic chat and synchronized YouTube watch app.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff3fb",
+  "theme_color": "#d95ca4",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
